@@ -1,38 +1,75 @@
 const std = @import("std");
 
-fn get_operation(operation: []const u8) u8 {
-    if (operation[0] == '+') return 1;
-    if (operation[1] == '-') return 2;
-    if (operation[2] == '*') return 3;
-    if (operation[3] == '/') return 4 else return 0;
+fn operator_bind_power(operand: method) !u8 {
+    switch (operand.operator) {
+        '*' => { return 3; },
+        '/' => { return 3; },
+        '-' => { return 1; },
+        '+' => { return 1; },
+        else => { std.debug.print("Syntax Error.\n\n", .{}); return error.syntax; }
+    }
+
+    return 0;
 }
 
-fn operate(current_value: f64, next_value: f64, operation: u8) !f64 {
-    var result: f64 = undefined;
-    switch (operation) {
-        1 => {result = current_value + next_value;},
-        2 => {result = current_value - next_value;},
-        3 => {result = current_value * next_value;},
-        4 => {result = current_value / next_value;},
-        else => { std.debug.print("Something went horribly wrong... Please try again.", .{}); return error.operateErr; },
-    }
-    return result;
+fn calculate(operand: method, lhs: f64, rhs: f64) !f64 {
+    return switch (operand.operator) {
+        '*' => { return lhs * rhs; },
+        '/' => { return lhs / rhs; },
+        '-' => { return lhs - rhs; },
+        '+' => { return lhs + rhs; },
+        else => { std.debug.print("Syntax Error.\n\n", .{}); return error.syntax; }
+    };
 }
+
+fn parse_expression(tokens: []const method, bp: u8, index: usize) !f64 {
+    if (tokens.len == index) return tokens[index].value;
+
+    const lhs = tokens[index].value;
+
+    const cbp = try operator_bind_power(tokens[index + 1]);
+    if (bp + 1 > cbp) {
+        return calculate(tokens[index + 1], lhs, tokens[index + 2].value);
+    } else {
+        return calculate(tokens[index + 1], lhs, try parse_expression(tokens, cbp, index + 2));
+    }
+}
+
+const method_tag = enum {
+    operator,
+    value,
+};
+
+const method = union(method_tag) {
+    operator: u8,
+    value: f64,
+};
 
 fn evaluate(expression: []const u8) !f64 {
-    var last_operation: u8 = 3;
-    var current_value: f64 = 1;
+    if (expression.len == 0) {
+        return 0;
+    }
+    var buf_e: [100]u8 = undefined;
+    var buf_m: [100]method = undefined;
+    const len = std.mem.replace(u8, expression, " ", "", &buf_e);
+    const expr = buf_e[0..len];
 
-    var iter = std.mem.tokenizeAny(u8, expression, " ");
-    while (iter.next()) |part| {
-        if (part.len == 1) {
-            last_operation = get_operation(part);
+    for (expr, 0..) |part, i| {
+        if (part >= '0' and part <= '9') {
+            buf_m[i] = method{ .value = @as(f64, @floatFromInt(part - '0')) };
         } else {
-            current_value = try operate(current_value, try std.fmt.parseFloat(f64, part), last_operation);
+            switch (part) {
+                '*' => { buf_m[i] = method{ .operator = part }; },
+                '/' => { buf_m[i] = method{ .operator = part }; },
+                '-' => { buf_m[i] = method{ .operator = part }; },
+                '+' => { buf_m[i] = method{ .operator = part }; },
+                else => { std.debug.print("Syntax Error.\n\n", .{}); }
+            }
         }
     }
 
-    return current_value;
+    const expr_method = buf_m[0..expr.len];
+    return try parse_expression(expr_method, 0, 0);
 }
 
 pub fn main() !void {
