@@ -29,11 +29,13 @@ fn parse_expression(tokens: []const method, bp: u8, index: usize) !f64 {
     const lhs = tokens[index].value;
 
     const cbp = operator_bind_power(tokens[index + 1]);
-    if (bp + 1 < cbp) {
-        return calculate(tokens[index + 1].operator, lhs, tokens[index + 2].value);
+    if (bp <= cbp) {
+        const value = try calculate(tokens[index + 1].operator, lhs, tokens[index + 2].value);
+        return calculate(tokens[index + 3].operator, value, try parse_expression(tokens, cbp, index + 4));
     } else {
-        return calculate(tokens[index + 1].operator, lhs, try parse_expression(tokens, cbp, index + 2));
+        return try calculate(tokens[index + 1].operator, lhs, try parse_expression(tokens, cbp, index + 2));
     }
+
 }
 
 const method_tag = enum {
@@ -68,9 +70,10 @@ fn evaluate(expr: []const u8) !f64 {
     }
 
     const expr_method = buf_m[0..expr.len];
-    std.debug.print("{s}\n", .{expr});
-    std.debug.print("{any}\n", .{expr_method});
-    return try parse_expression(expr_method, 0, 0);
+    const value = try parse_expression(expr_method, 0, 0);
+    std.debug.print("{any}\n\n", .{expr_method});
+    std.debug.print("{s}={d}\n\n", .{expr, value});
+    return value;
 }
 
 pub fn main() !void {
@@ -87,8 +90,30 @@ pub fn main() !void {
         }
     } else {
         std.debug.print("No mathematical expression detected.\n\n", .{});
+
+        _ = try evaluate("1+1");
+        _ = try evaluate("4-3");
+        _ = try evaluate("3*3+4*2");
+        _ = try evaluate("3/3+3+1");
         return;
     }
 
     return;
+}
+
+test "e1" {
+    const eval = try evaluate("1+1");
+    try std.testing.expect(eval == 2.0);
+}
+test "e2" {
+    const eval = try evaluate("  4 - 3");
+    try std.testing.expect(eval == 1.0);
+}
+test "e3" {
+    const eval = try evaluate("3*3+4*2");
+    try std.testing.expect(eval == 17.0);
+}
+test "e4" {
+    const eval = try evaluate("3/3+ 3+1");
+    try std.testing.expect(eval == 5.0);
 }
