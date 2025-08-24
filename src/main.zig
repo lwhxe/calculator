@@ -22,20 +22,21 @@ fn calculate(operand: u8, lhs: f64, rhs: f64) !f64 {
     };
 }
 
-// TODO: Fix calculation statements.
-fn parse_expression(tokens: []const method, bp: u8, index: usize) !f64 {
+// TODO: Just fix this.
+fn parse_expression(tokens: []const method, left_bp: u8, index: usize) !f64 {
     if (tokens.len <= index + 2) return tokens[index].value;
 
-    const lhs = tokens[index].value;
+    const right_bp = operator_bind_power(tokens[index+1]);
+    const left_value = tokens[index].value;
+    var value: f64 = undefined;
 
-    const cbp = operator_bind_power(tokens[index + 1]);
-    if (bp <= cbp) {
-        const value = try calculate(tokens[index + 1].operator, lhs, tokens[index + 2].value);
-        return calculate(tokens[index + 3].operator, value, try parse_expression(tokens, cbp, index + 4));
+    if (left_bp < right_bp) {
+        value = try calculate(tokens[index + 1].operator, left_value, try parse_expression(tokens, right_bp, index + 2));
     } else {
-        return try calculate(tokens[index + 1].operator, lhs, try parse_expression(tokens, cbp, index + 2));
+        return tokens[index].value;
     }
 
+    return try calculate(tokens[index + 1].operator, value, try parse_expression(tokens, operator_bind_power(tokens[index + 1]), index + 2));
 }
 
 const method_tag = enum {
@@ -71,8 +72,6 @@ fn evaluate(expr: []const u8) !f64 {
 
     const expr_method = buf_m[0..expr.len];
     const value = try parse_expression(expr_method, 0, 0);
-    std.debug.print("{any}\n\n", .{expr_method});
-    std.debug.print("{s}={d}\n\n", .{expr, value});
     return value;
 }
 
@@ -86,7 +85,7 @@ pub fn main() !void {
                 return;
             }
             const result = try evaluate(expression);
-            std.debug.print("{d}, ", .{result});
+            std.debug.print("{s}={d}\n\n", .{expression, result});
         }
     } else {
         std.debug.print("No mathematical expression detected.\n\n", .{});
