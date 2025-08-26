@@ -1,9 +1,9 @@
 const std = @import("std");
 
-fn operator_bind_power(operand: method) u8 {
-    switch (operand.operator) {
-        '*' => { return 3; },
-        '/' => { return 3; },
+fn operator_bind_power(operand: u8) u8 {
+    switch (operand) {
+        '*' => { return 2; },
+        '/' => { return 2; },
         '-' => { return 1; },
         '+' => { return 1; },
         else => { return 0; }
@@ -23,20 +23,37 @@ fn calculate(operand: u8, lhs: f64, rhs: f64) !f64 {
 }
 
 // TODO: Just fix this.
-fn parse_expression(tokens: []const method, left_bp: u8, index: usize) !f64 {
-    if (tokens.len <= index + 2) return tokens[index].value;
+fn parse_expression(tokens: []const method) !f64 {
+    const token_count = tokens.len;
+    var new_tokens: [1000]method = undefined;
 
-    const right_bp = operator_bind_power(tokens[index+1]);
-    const left_value = tokens[index].value;
-    var value: f64 = undefined;
-
-    if (left_bp < right_bp) {
-        value = try calculate(tokens[index + 1].operator, left_value, try parse_expression(tokens, right_bp, index + 2));
-    } else {
-        return tokens[index].value;
+    if (token_count > new_tokens.len) {
+        return error.OutOfMemory;
     }
 
-    return try calculate(tokens[index + 1].operator, value, try parse_expression(tokens, operator_bind_power(tokens[index + 1]), index + 2));
+    @memcpy(new_tokens[0..token_count], tokens);
+
+    var i: usize = 0;
+    while (i + 3 < token_count) : (i += 2) {
+        if (operator_bind_power(new_tokens[i + 1].operator) == 2) {
+            const result = try calculate(new_tokens[i + 1].operator, new_tokens[i].value, new_tokens[i + 2].value);
+            
+            new_tokens[i] = method{ .value = result };
+            
+            @memcpy(new_tokens[i + 1..tokens.len], new_tokens[i + 3..tokens.len]);
+            break;
+        }
+        std.debug.print("{any}\n\n", .{new_tokens[0..tokens.len]});
+    }
+
+    var total: f64 = 0;
+    i = 0;
+
+    while (i + 1 < token_count) : (i += 2) {
+        total += try calculate(new_tokens[i + 1].operator, total, new_tokens[i].value);
+    }
+
+    return total;
 }
 
 const method_tag = enum {
@@ -71,7 +88,7 @@ fn evaluate(expr: []const u8) !f64 {
     }
 
     const expr_method = buf_m[0..expr.len];
-    const value = try parse_expression(expr_method, 0, 0);
+    const value = try parse_expression(expr_method);
     return value;
 }
 
