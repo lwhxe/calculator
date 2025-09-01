@@ -43,15 +43,15 @@ echo -e "${BLUE}Extracting...${NC}"
 tar -xzf "$TMP_DIR/$FILE_NAME" -C "$TMP_DIR"
 
 EXTRACTED_DIR="$TMP_DIR/${REPO}-${ARCH}-${OS}"
-BIN="$EXTRACTED_DIR/zdu"
+BIN="$EXTRACTED_DIR/calculator"
 if [ "$OS" = "windows" ]; then
     BIN="$BIN.exe"
 fi
 
 echo -e "${BLUE}Installing $BIN to /usr/local/bin...${NC}"
-sudo cp "$BIN" /usr/local/bin/zdu
-sudo chmod +x /usr/local/bin/zdu
+sudo cp "$BIN" /usr/local/bin/calculator
+sudo chmod +x /usr/local/bin/calculator
 
-echo -e "${GREEN}zdu installed successfully!${NC}"
+echo -e "${GREEN}calculator installed successfully!${NC}"
 
 rm -rf "$TMP_DIR"
