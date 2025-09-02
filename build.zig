@@ -20,6 +20,7 @@ pub fn build(b: *std.Build) !void {
             .link_libc = true,
         }),
     });
+    exe.addIncludePath(.{.src_path = .{.owner = b, .sub_path = "src"}});
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
