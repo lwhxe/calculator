@@ -40,7 +40,10 @@ pub fn main() !void {
             },
             '/' => {
                 const div = try prompt();
-                if (div == 0) continue :p '/';
+                if (div == 0) {
+                    std.debug.print("Division by zero is not possible.\n", .{});
+                    continue :p '/';
+                }
                 total /= div;
             },
             '+' => {
